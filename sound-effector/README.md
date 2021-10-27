@@ -1,7 +1,23 @@
 sound-effector
 ==============================
 
-A short description of the project.
+Spotify の Pedalboard を使った音響エフェクトのデモです。
+
+
+Installation
+------------
+
+```
+$ poetry install
+```
+
+Run
+---
+
+```
+$ poetry run streamlit run src/main.py
+```
+
 
 Project Organization
 ------------
