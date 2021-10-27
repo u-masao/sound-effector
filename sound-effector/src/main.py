@@ -13,9 +13,10 @@ class AudioInterface:
         self.channels = 2
         self.fs = 44100
         self.record_second = 3
-
         self.frames = []
         self.p = pyaudio.PyAudio()
+        self.wf = None
+        print("__init__()")
 
     def record(self):
         stream = self.p.open(
@@ -38,51 +39,63 @@ class AudioInterface:
         self.p.terminate()
 
     def save(self, filename):
-
-        wf = wave.open(filename, "wb")
-        wf.setnchannels(self.channels)
-        wf.setsampwidth(self.p.get_sample_size(self.format))
-        wf.setframerate(self.fs)
-        wf.writeframes(b"".join(self.frames))
-        wf.close()
+        self.wf = wave.open(filename, "wb")
+        self.wf.setnchannels(self.channels)
+        self.wf.setsampwidth(self.p.get_sample_size(self.format))
+        self.wf.setframerate(self.fs)
+        self.wf.writeframes(b"".join(self.frames))
+        self.wf.close()
 
     def load(self, filename):
-        wf = wave.open(filename, "rb")
-        stream = self.p.open(
+        self.wf = wave.open(filename, "rb")
+        stream = self.get_output_stream(self.wf)
+        self.frames = []
+        data = self.wf.readframes(self.chunk)
+
+        while len(data) > 0:
+            self.frames.append(data)
+            stream.write(data)
+            data = self.wf.readframes(self.chunk)
+        stream.stop_stream()
+        stream.close()
+
+    def get_output_stream(self, wf):
+        return self.p.open(
             format=self.p.get_format_from_width(wf.getsampwidth()),
             channels=wf.getnchannels(),
             rate=wf.getframerate(),
             output=True,
         )
-        self.frames = []
-        data = wf.readframes(self.chunk)
 
-        while data != "":
-            self.frames.append(data)
+    def play(self, filename):
+        self.wf = wave.open(filename, "rb")
+        stream = self.get_output_stream(self.wf)
+        print(stream)
+        for data in self.frames:
             stream.write(data)
-            data = wf.readframes(self.chunk)
         stream.stop_stream()
         stream.close()
-
-    def play(self):
-        pass
 
     def __def__(self):
         self.p.terminate()
 
 
-st.title("hey")
-st.write("hey")
+st.title("sound effect")
+st.write("pyaudio のテスト")
 
-ai = AudioInterface()
 if st.button("save"):
-    st.write("hello")
+    ai = AudioInterface()
     ai.record()
     ai.save("data/raw/record.wav")
+    print("done")
 
 if st.button("load"):
-    st.write("hello")
+    ai = AudioInterface()
     ai.load("data/raw/record.wav")
+    print("done")
 
 if st.button("play"):
-    ai.play()
+    ai = AudioInterface()
+    ai.record()
+    ai.play("data/raw/record.wav")
+    print("done")
