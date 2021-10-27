@@ -1,8 +1,9 @@
-import pyaudio
 import wave
-import streamlit as st
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import pyaudio
+import streamlit as st
 
 
 class AudioInterface:
@@ -15,9 +16,14 @@ class AudioInterface:
 
         self.p = pyaudio.PyAudio()
 
-
     def record(self):
-        stream = self.p.open(format=self.format, channels=self.channels, rate=self.fs, input=True, frames_par_buffer=self.chunk)
+        stream = self.p.open(
+            format=self.format,
+            channels=self.channels,
+            rate=self.fs,
+            input=True,
+            frames_par_buffer=self.chunk,
+        )
         print("recording")
 
         self.frames = []
@@ -53,5 +59,3 @@ if st.button("recording"):
     print("pushed")
 else:
     st.write("bye")
-
-
