@@ -1,7 +1,6 @@
+import time
 import wave
 
-import numpy as np
-import pandas as pd
 import pyaudio
 import streamlit as st
 
@@ -19,23 +18,26 @@ class AudioInterface:
         print("__init__()")
 
     def record(self):
-        stream = self.p.open(
+        self.stream = self.p.open(
             format=self.format,
             channels=self.channels,
             rate=self.fs,
             input=True,
             frames_per_buffer=self.chunk,
+            stream_callback=self.recording_callback,
         )
 
-        self.frames = []
-        data = []
+    def recording_callback(self, in_data, frame_count, time_info, status):
+        data = self.stream.read(self.chunk)
+        self.frames.append(data)
+        return (data, pyaudio.paContinue)
 
-        for i in range(int(self.fs / self.chunk * self.record_second)):
-            data = stream.read(self.chunk)
-            self.frames.append(data)
+    def start(self):
+        self.stream.start_stream()
 
-        stream.stop_stream()
-        stream.close()
+    def stop(self):
+        self.stream.stop_stream()
+        self.stream.close()
         self.p.terminate()
 
     def save(self, filename):
@@ -82,6 +84,16 @@ class AudioInterface:
 
 st.title("sound effect")
 st.write("pyaudio のテスト")
+
+
+if st.button("record"):
+    ai = AudioInterface()
+    ai.record()
+    ai.start()
+    time.sleep(2)
+    ai.stop()
+    ai.save("data/raw/record.wav")
+    print("done")
 
 if st.button("save"):
     ai = AudioInterface()
