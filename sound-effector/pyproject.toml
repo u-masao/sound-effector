@@ -8,6 +8,8 @@ authors = ["u-masao <4973920+u-masao@users.noreply.github.com>"]
 python = "^3.8"
 streamlit = "^1.1.0"
 PyAudio = "^0.2.11"
+pedalboard = "^0.3.8"
+SoundFile = "^0.10.3"
 
 [tool.poetry.dev-dependencies]
 pysen = "^0.9.1"
