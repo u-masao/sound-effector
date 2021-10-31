@@ -110,6 +110,20 @@ class AudioInterface:
 st.title("sound effect")
 st.write("pyaudio のテスト")
 
+# st.button("Re-runaaaa")
+
+progress_bar = st.sidebar.progress(0)
+status_text = st.sidebar.empty()
+chart = st.line_chart([[0]])
+
+for i in range(1, 101):
+    new_rows = [1,2,3,4,5]
+    status_text.text("%i%% Complete" % i)
+    chart.add_rows(new_rows)
+    progress_bar.progress(i)
+    time.sleep(0.05)
+
+
 
 if st.button("record"):
     ai = AudioInterface()
@@ -134,3 +148,4 @@ if st.button("record"):
         time.sleep(0.25)
     ai.stop()
     print("play done")
+    
