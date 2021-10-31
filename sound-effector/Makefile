@@ -36,7 +36,7 @@ clean:
 
 ## Lint using pysen
 lint:
-	poetry run pysen format
+	poetry run pysen run format
 
 ## Upload Data to S3
 sync_data_to_s3:
