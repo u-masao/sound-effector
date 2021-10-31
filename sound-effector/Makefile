@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: run clean data lint requirements sync_data_to_s3 sync_data_from_s3
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -8,7 +8,7 @@ PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
 PROJECT_NAME = sound-effector
-PYTHON_INTERPRETER = python3
+PYTHON_INTERPRETER = poetry run python
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -34,9 +34,9 @@ clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
-## Lint using flake8
+## Lint using pysen
 lint:
-	flake8 src
+	poetry run pysen format
 
 ## Upload Data to S3
 sync_data_to_s3:
@@ -80,7 +80,9 @@ test_environment:
 # PROJECT RULES                                                                 #
 #################################################################################
 
-
+## run app UI
+run:
+	poetry run streamlit run src/main.py
 
 #################################################################################
 # Self Documenting Commands                                                     #
