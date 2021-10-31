@@ -6,31 +6,79 @@ import streamlit as st
 
 
 class AudioInterface:
-    def __init__(self):
-        self.chunk = 1024
-        self.format = pyaudio.paInt16
-        self.channels = 2
-        self.fs = 44100
-        self.record_second = 3
+
+    """
+    ```
+    import time
+
+    ai = AudioInterface()
+    start = time.time()
+    while ai.is_active() and time.time() - start < 3:
+        if len(ai.get_frames()) > 0:
+            # print(ai.get_frames[-1])
+            pass
+        time.sleep(0.25)
+    ```
+    """
+
+    def input_callback(self, in_data, frame_count, time_info, status):
+        self.frames.append(in_data)
+        return (in_data, pyaudio.paContinue)
+
+    def output_callback(self, in_data, frame_count, time_info, status):
+        status = pyaudio.paContinue
+        data = None
+        if len(self.frames) > self.play_index:
+            data = self.frames[self.play_index]
+            self.play_index += 1
+        elif len(self.frames) == self.play_index:
+            status = pyaudio.paComplete
+        else:
+            status = pyaudio.paAbort
+
+        return (data, status)
+
+    def __init__(
+        self, channels=2, chunk=1024, format=pyaudio.paInt16, sampling_rate=8000
+    ):
         self.frames = []
+
+        self.channels = channels
+        self.chunk = chunk
+        self.format = format
+        self.sampling_rate = sampling_rate
+
         self.p = pyaudio.PyAudio()
-        self.wf = None
-        print("__init__()")
+
+    def __def__(self):
+        self.p.terminate()
+
+    def get_frames(self):
+        return self.frames
 
     def record(self):
         self.stream = self.p.open(
             format=self.format,
             channels=self.channels,
-            rate=self.fs,
-            input=True,
+            rate=self.sampling_rate,
             frames_per_buffer=self.chunk,
-            stream_callback=self.recording_callback,
+            input=True,
+            stream_callback=self.input_callback,
         )
 
-    def recording_callback(self, in_data, frame_count, time_info, status):
-        data = self.stream.read(self.chunk)
-        self.frames.append(data)
-        return (data, pyaudio.paContinue)
+    def play(self):
+        self.play_index = 0
+        self.stream = self.p.open(
+            format=self.format,
+            channels=self.channels,
+            rate=self.sampling_rate,
+            frames_per_buffer=self.chunk,
+            output=True,
+            stream_callback=self.output_callback,
+        )
+
+    def is_active(self):
+        return self.stream.is_active()
 
     def start(self):
         self.stream.start_stream()
@@ -38,48 +86,25 @@ class AudioInterface:
     def stop(self):
         self.stream.stop_stream()
         self.stream.close()
-        self.p.terminate()
 
     def save(self, filename):
-        self.wf = wave.open(filename, "wb")
-        self.wf.setnchannels(self.channels)
-        self.wf.setsampwidth(self.p.get_sample_size(self.format))
-        self.wf.setframerate(self.fs)
-        self.wf.writeframes(b"".join(self.frames))
-        self.wf.close()
+        with wave.open(filename, "wb") as wf:
+            wf.setnchannels(self.channels)
+            wf.setsampwidth(self.p.get_sample_size(self.format))
+            wf.setframerate(self.sampling_rate)
+            wf.writeframes(b"".join(self.frames))
 
     def load(self, filename):
-        self.wf = wave.open(filename, "rb")
-        stream = self.get_output_stream(self.wf)
         self.frames = []
-        data = self.wf.readframes(self.chunk)
 
-        while len(data) > 0:
-            self.frames.append(data)
-            stream.write(data)
-            data = self.wf.readframes(self.chunk)
-        stream.stop_stream()
-        stream.close()
-
-    def get_output_stream(self, wf):
-        return self.p.open(
-            format=self.p.get_format_from_width(wf.getsampwidth()),
-            channels=wf.getnchannels(),
-            rate=wf.getframerate(),
-            output=True,
-        )
-
-    def play(self, filename):
-        self.wf = wave.open(filename, "rb")
-        stream = self.get_output_stream(self.wf)
-        print(stream)
-        for data in self.frames:
-            stream.write(data)
-        stream.stop_stream()
-        stream.close()
-
-    def __def__(self):
-        self.p.terminate()
+        with wave.open(filename, "rb") as wf:
+            with self.get_output_stream(wf) as stream:
+                while True:
+                    data = wf.readframes(self.chunk)
+                    if len(data) <= 0:
+                        break
+                    self.frames.append(data)
+                stream.stop_stream()
 
 
 st.title("sound effect")
@@ -90,24 +115,22 @@ if st.button("record"):
     ai = AudioInterface()
     ai.record()
     ai.start()
-    time.sleep(2)
+    start = time.time()
+    while ai.is_active() and time.time() - start < 3:
+        if len(ai.get_frames()) > 0:
+            # print(ai.get_frames[-1])
+            pass
+        time.sleep(0.25)
     ai.stop()
+    print("recod done")
     ai.save("data/raw/record.wav")
-    print("done")
-
-if st.button("save"):
-    ai = AudioInterface()
-    ai.record()
-    ai.save("data/raw/record.wav")
-    print("done")
-
-if st.button("load"):
-    ai = AudioInterface()
-    ai.load("data/raw/record.wav")
-    print("done")
-
-if st.button("play"):
-    ai = AudioInterface()
-    ai.record()
-    ai.play("data/raw/record.wav")
-    print("done")
+    print("save done")
+    ai.play()
+    start = time.time()
+    while ai.is_active() and time.time() - start < 3:
+        if len(ai.get_frames()) > 0:
+            # print(ai.get_frames[-1])
+            pass
+        time.sleep(0.25)
+    ai.stop()
+    print("play done")
