@@ -110,42 +110,40 @@ class AudioInterface:
 st.title("sound effect")
 st.write("pyaudio のテスト")
 
-# st.button("Re-runaaaa")
 
 progress_bar = st.sidebar.progress(0)
 status_text = st.sidebar.empty()
-chart = st.line_chart([[0]])
-
-for i in range(1, 101):
-    new_rows = [1,2,3,4,5]
-    status_text.text("%i%% Complete" % i)
-    chart.add_rows(new_rows)
-    progress_bar.progress(i)
-    time.sleep(0.05)
-
-
+chart = st.line_chart()
 
 if st.button("record"):
+    record_sec = 5
+
     ai = AudioInterface()
     ai.record()
     ai.start()
     start = time.time()
-    while ai.is_active() and time.time() - start < 3:
-        if len(ai.get_frames()) > 0:
-            # print(ai.get_frames[-1])
-            pass
-        time.sleep(0.25)
+    display_index = 0
+    while ai.is_active() and time.time() - start < record_sec:
+        frames = ai.get_frames()
+        frame_length = len(frames)
+        for i in range(display_index, frame_length):
+            status_text.text(f"{i} frames display")  # ToDo parse int16
+            chart.add_rows([max(list(frames[i]))])
+            progress_bar.progress(i)
+            time.sleep(0.05)
+
+        display_index = frame_length
+
     ai.stop()
     print("recod done")
     ai.save("data/raw/record.wav")
     print("save done")
     ai.play()
     start = time.time()
-    while ai.is_active() and time.time() - start < 3:
+    while ai.is_active() and time.time() - start < record_sec:
         if len(ai.get_frames()) > 0:
             # print(ai.get_frames[-1])
             pass
         time.sleep(0.25)
     ai.stop()
     print("play done")
-    
