@@ -1,6 +1,7 @@
 import time
 import wave
 
+import numpy as np
 import pyaudio
 import streamlit as st
 
@@ -50,13 +51,38 @@ class AudioInterface:
 
         self.p = pyaudio.PyAudio()
 
-    def __def__(self):
+    def __del__(self):
         self.p.terminate()
 
     def get_frames(self):
         return self.frames
 
+    def get_waveforms(self):
+        waveforms = []
+        for frame in self.frames:
+            waveforms.append(np.array(self.parse_frame(frame)))
+            waveforms[-1] = [np.mean(x) for x in np.array_split(waveforms[-1], 32, 0)]
+        return waveforms
+
+    def parse_frame(self, frame):
+        values = []
+        sample_size = self.p.get_sample_size(self.format)
+        for i in range(len(frame) // sample_size):
+            values.append(
+                int.from_bytes(
+                    frame[(i * sample_size) : ((i + 1) * sample_size)],
+                    byteorder="big",
+                    signed=True,
+                )
+            )
+        values = [
+            values[i : (i + self.channels)]
+            for i in range(0, len(values), self.channels)
+        ]
+        return values
+
     def record(self):
+
         self.stream = self.p.open(
             format=self.format,
             channels=self.channels,
@@ -96,15 +122,15 @@ class AudioInterface:
 
     def load(self, filename):
         self.frames = []
-
         with wave.open(filename, "rb") as wf:
-            with self.get_output_stream(wf) as stream:
-                while True:
-                    data = wf.readframes(self.chunk)
-                    if len(data) <= 0:
-                        break
-                    self.frames.append(data)
-                stream.stop_stream()
+            self.channels = wf.getnchannels()
+            self.sampling_rate = wf.getframerate()
+            self.format = self.p.get_format_from_width(wf.getsampwidth())
+            while True:
+                data = wf.readframes(self.chunk)
+                if len(data) <= 0:
+                    break
+                self.frames.append(data)
 
 
 st.title("sound effect")
@@ -124,11 +150,11 @@ if st.button("record"):
     start = time.time()
     display_index = 0
     while ai.is_active() and time.time() - start < record_sec:
-        frames = ai.get_frames()
+        frames = ai.get_waveforms()
         frame_length = len(frames)
         for i in range(display_index, frame_length):
             status_text.text(f"{i} frames display")  # ToDo parse int16
-            chart.add_rows([max(list(frames[i]))])
+            chart.add_rows(frames[i])
             progress_bar.progress(i)
             time.sleep(0.05)
 
@@ -139,6 +165,7 @@ if st.button("record"):
     ai.save("data/raw/record.wav")
     print("save done")
     ai.play()
+    ai.start()
     start = time.time()
     while ai.is_active() and time.time() - start < record_sec:
         if len(ai.get_frames()) > 0:
@@ -147,3 +174,26 @@ if st.button("record"):
         time.sleep(0.25)
     ai.stop()
     print("play done")
+    del ai
+
+if st.button("play"):
+    ai = AudioInterface()
+    ai.load("data/raw/record.wav")
+    ai.play()
+    ai.start()
+    start = time.time()
+    display_index = 0
+    while ai.is_active() and display_index < 3:
+        frames = ai.get_waveforms()
+        frame_length = len(frames)
+        for i in range(display_index, frame_length):
+            status_text.text(f"{i} frames display")  # ToDo parse int16
+            chart.add_rows(frames[i])
+            progress_bar.progress(i)
+            time.sleep(0.05)
+
+        display_index = frame_length
+
+    ai.stop()
+    print("play done")
+    del ai
